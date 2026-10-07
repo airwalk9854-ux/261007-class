@@ -262,6 +262,7 @@ def build_feedback(question_text, question_type, score, teacher_settings, pdf_te
 
 def render_student_login():
     st.title("중학생 개념 기반 탐구 질문 학습 앱")
+
     st.subheader("학생 로그인")
     st.write("학번과 이름을 입력한 뒤, 탐구 질문을 작성하고 질문을 발전시켜 보세요.")
 
@@ -279,11 +280,24 @@ def render_student_login():
             st.session_state.page = "student"
             st.rerun()
 
+    st.markdown("---")
+    st.subheader("교사용 대시보드 접속")
+    st.write("교사는 별도 비밀번호로만 대시보드에 진입할 수 있습니다.")
+
+    with st.form("teacher_access_form"):
+        teacher_password = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요")
+        go_teacher = st.form_submit_button("입장")
+
+    if go_teacher:
+        if teacher_password == "200208":
+            st.session_state.page = "teacher"
+            st.rerun()
+        else:
+            st.error("비밀번호가 올바르지 않습니다.")
+
     with st.sidebar:
         st.markdown("---")
-        if st.button("교사용 대시보드로 이동"):
-            st.session_state.page = "teacher_password"
-            st.rerun()
+        st.caption("학생용 화면")
 
 
 def render_teacher_password():
@@ -309,7 +323,9 @@ def render_teacher_dashboard():
     student_df = load_student_records()
 
     with st.sidebar:
-        if st.button("학생 로그인으로 돌아가기"):
+        if st.button("로그아웃 및 학생 화면으로 이동"):
+            for key in ["student_name", "student_id", "page", "initial_question", "analysis_done"]:
+                st.session_state.pop(key, None)
             st.session_state.page = "student_login"
             st.rerun()
 
@@ -322,15 +338,17 @@ def render_teacher_dashboard():
         save_button = st.form_submit_button("설정 저장")
 
     if save_button:
-        save_teacher_settings(
+        settings.update(
             {
                 "achievement_standards": achievement_standards,
                 "core_concepts": core_concepts,
                 "core_ideas": core_ideas,
                 "core_questions": core_questions,
+                "reference_materials": settings.get("reference_materials", ""),
             }
         )
-        st.success("교과 설계 정보가 저장되었습니다.")
+        save_teacher_settings(settings)
+        st.success("교과 설계 정보가 저장되었습니다. 이 정보는 학생 질문 피드백에 반영됩니다.")
 
     st.subheader("2. PDF 자료 업로드 및 분석")
     pdf_files = st.file_uploader("교과서 파일 또는 참고 문서 PDF 업로드", type=["pdf"], accept_multiple_files=True)
@@ -381,13 +399,6 @@ def render_student_app():
     student_name = st.session_state.get("student_name", "학생")
     student_id = st.session_state.get("student_id", "")
     st.caption(f"로그인 학생: {student_name} ({student_id})")
-
-    teacher_settings = load_teacher_settings()
-    st.markdown("### 교사 설계 기반 탐구 포인트")
-    st.write(f"성취기준: {teacher_settings.get('achievement_standards', '')}")
-    st.write(f"핵심 개념: {teacher_settings.get('core_concepts', '')}")
-    st.write(f"핵심 아이디어: {teacher_settings.get('core_ideas', '')}")
-    st.write(f"핵심 질문: {teacher_settings.get('core_questions', '')}")
 
     with st.sidebar:
         if st.button("로그아웃"):
