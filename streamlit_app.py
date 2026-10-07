@@ -280,26 +280,6 @@ def render_student_login():
             st.session_state.page = "student"
             st.rerun()
 
-    st.markdown("---")
-    st.subheader("교사용 대시보드 접속")
-    st.write("교사는 별도 비밀번호로만 대시보드에 진입할 수 있습니다.")
-
-    with st.form("teacher_access_form"):
-        teacher_password = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요")
-        go_teacher = st.form_submit_button("입장")
-
-    if go_teacher:
-        if teacher_password == "200208":
-            st.session_state.page = "teacher"
-            st.rerun()
-        else:
-            st.error("비밀번호가 올바르지 않습니다.")
-
-    with st.sidebar:
-        st.markdown("---")
-        st.caption("학생용 화면")
-
-
 def render_teacher_password():
     st.title("교사용 대시보드 접근")
     st.write("비밀번호를 입력해 주세요.")
@@ -321,13 +301,6 @@ def render_teacher_dashboard():
     st.title("교사용 대시보드")
     settings = load_teacher_settings()
     student_df = load_student_records()
-
-    with st.sidebar:
-        if st.button("로그아웃 및 학생 화면으로 이동"):
-            for key in ["student_name", "student_id", "page", "initial_question", "analysis_done"]:
-                st.session_state.pop(key, None)
-            st.session_state.page = "student_login"
-            st.rerun()
 
     st.subheader("1. 교과 설계 정보")
     with st.form("teacher_settings_form"):
@@ -399,13 +372,6 @@ def render_student_app():
     student_name = st.session_state.get("student_name", "학생")
     student_id = st.session_state.get("student_id", "")
     st.caption(f"로그인 학생: {student_name} ({student_id})")
-
-    with st.sidebar:
-        if st.button("로그아웃"):
-            for key in ["student_name", "student_id", "page", "initial_question", "analysis_done"]:
-                st.session_state.pop(key, None)
-            st.session_state.page = "student_login"
-            st.rerun()
 
     teacher_settings = load_teacher_settings()
     pdf_context = teacher_settings.get("reference_materials", "")
@@ -492,6 +458,43 @@ def render_student_app():
             st.write(revised_feedback)
 
 
+def logout():
+    session_keys = [
+        "student_name",
+        "student_id",
+        "page",
+        "initial_question",
+        "analysis_done",
+        "question_type",
+        "question_score",
+        "feedback",
+        "revised_type",
+        "revised_score",
+        "revised_feedback",
+    ]
+    for key in session_keys:
+        st.session_state.pop(key, None)
+    st.session_state.page = "student_login"
+    st.rerun()
+
+
+def render_footer(page):
+    st.markdown("---")
+    footer_columns = st.columns([1, 2, 1])
+    with footer_columns[1]:
+        if page == "teacher":
+            st.button("교사용 대시보드 (현재 화면)", disabled=True, use_container_width=True)
+        elif page == "teacher_password":
+            st.button("교사용 대시보드 접속", disabled=True, use_container_width=True)
+        elif st.button("교사용 대시보드 접속", use_container_width=True):
+            st.session_state.page = "teacher_password"
+            st.rerun()
+
+    if page in {"student", "teacher"}:
+        if st.button("로그아웃", key="footer_logout"):
+            logout()
+
+
 page = st.session_state.get("page", "student_login")
 
 if page == "student_login":
@@ -502,3 +505,5 @@ elif page == "teacher":
     render_teacher_dashboard()
 else:
     render_student_app()
+
+render_footer(page)
